@@ -789,11 +789,12 @@ def getTransitionStateTreeHTML(database, section, subsection, entries):
             html += '<img id="button_{0}" class="treeButton" src="/media/tree-collapse.png"/>'.format(entry.index)
         else:
             html += '<img class="treeButton" src="/media/tree-blank.png"/>'
-        html += '{0}. {1}\n'.format(entry.index, entry.label)
+        html += '<a href="../groups/{0}/">{0}. {1}</a>\n'.format(entry.index, entry.label)
         html += '<div class="kineticsData">\n'
         if entry.data is not None and entry.data.distances:
             for d in ['d12', 'd13', 'd23']:
-                html += '<span class="kineticsDatum">{0:.3f}</span> '.format(entry.data.distances[d])
+                html += '<span class="kineticsDatum">{0:.3f} ({1:.3f})</span> '.format(entry.data.distances[d], entry.data.uncertainties[d] if len(entry.data.uncertainties) > 0 else 0)
+        html += entry.longDesc.split('\n')[0] if len(entry.longDesc.split('\n'))>0 else ""
         html += '</div>\n'
         # Recursively descend children (depth-first)
         if len(entry.children) > 0:
