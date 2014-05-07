@@ -488,7 +488,7 @@ class Input(models.Model):
         
         initial_reaction_libraries = []
         if self.rmg.seedMechanisms:
-            for item in self.rmg.seedMechanism:
+            for item in self.rmg.seedMechanisms:
                 initial_reaction_libraries.append({'reactionlib': item, 'seedmech': True, 'edge': False})
         if self.rmg.reactionLibraries:
             for item, edge in self.rmg.reactionLibraries:
