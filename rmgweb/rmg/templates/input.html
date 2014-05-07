@@ -385,8 +385,15 @@ This is translated into an adjacency list using the <a href="http://cactus.nci.n
                </table>
    
        </ol>
+       
+       <ol>
+           <li value="7"><h3>Liquid phase solvation corrections: {{ form.solvent }}</h3>
+               <P>
+               To be used if you would like to use solvation thermodynamic corrections.
+               <P>       
+       </ol>
 
-            <ol><li value="7"><h3>Tolerances</h3>
+            <ol><li value="8"><h3>Tolerances</h3>
                     <P>Indicate your allowed flux tolerance for moving a reaction to the core or keeping
                         the reaction on the edge.  In the advanced options, you can set additional tolerances for the solver, and 
                         for the edge reactions (the possible reactions generated from the species in the core).
@@ -408,7 +415,7 @@ This is translated into an adjacency list using the <a href="http://cactus.nci.n
             <P><br>
 
             <ol>
-        <li value="8"><h3>Additional Options</h3>
+        <li value="9"><h3>Additional Options</h3>
         	Restart files can be generated automatically during the progress of a RMG-Py job in order to pick up a job in the middle
         	of a run rather than starting completely from scratch if there is a failure or memory issue.          	
         	The save restart period may be optionally left empty if no restart files are desired.  

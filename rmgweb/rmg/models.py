@@ -440,6 +440,36 @@ class Input(models.Model):
     onlyCyclics = models.BooleanField(default=True)
     maxRadicalNumber = models.PositiveIntegerField(blank=True, default=0)
     
+    # Solvation
+    solvent_list = (('off','off',),
+                    ('1-octanol','1-octanol',),
+                    ('acetonitrile','Acetonitrile',),
+                    ('benzene','Benzene',),
+                    ('butanol','Butanol',),
+                    ('carbontet','Carbontet',),
+                    ('chloroform','Chloroform',),
+                    ('cyclohexane','Cyclohexane',),
+                    ('decane','Decane',),
+                    ('dibutylether','Dibutylether',),
+                    ('dichloroethane','Dichloroethane',),
+                    ('dimethylformamide','Dimethylformamide',),
+                    ('dimethylsulfoxide','Dimethylsulfoxide',),
+                    ('dodecane','Dodecane',),
+                    ('ethanol','Ethanol',),
+                    ('ethylacetate','Ethylacetate',),
+                    ('heptane','Heptane',),
+                    ('hexadecane','Hexadecane',),
+                    ('hexane','Hexane',),
+                    ('isooctane','Isooctane',),
+                    ('nonane','Nonane',),
+                    ('octane','Octane',),
+                    ('pentane','Pentane',),
+                    ('toluene','Toluene',),
+                    ('undecane','Undecane',),
+                    ('water','Water',)
+                    )
+    solvent = models.CharField(max_length=200, default='off', choices=solvent_list)
+    
     # Tolerance
     toleranceMoveToCore = models.FloatField(blank=True, null=True)
     toleranceKeepInEdge= models.FloatField(default = 0.0)
@@ -565,7 +595,8 @@ class Input(models.Model):
 
         else:
             initial['pdep'] = 'off'  
-            
+        
+        # QMTP
         if self.rmg.quantumMechanics:
             initial['method'] = self.rmg.quantumMechanics.settings.method
             initial['maxRadicalNumber'] = self.rmg.quantumMechanics.settings.maxRadicalNumber
@@ -573,6 +604,12 @@ class Input(models.Model):
         else:
             initial['qmtp'] = 'off'  
             
+        # Solvation
+        if self.rmg.solvent:
+            initial['solvent'] = self.rmg.solvent
+        else:
+            initial['solvent'] = 'off'
+        
         # Additional Options
         if self.rmg.saveRestartPeriod:
             initial['saveRestartPeriod'] = self.rmg.saveRestartPeriod.getValue()
@@ -680,6 +717,11 @@ class Input(models.Model):
             self.rmg.quantumMechanics.settings.onlyCyclics = form.cleaned_data['onlyCyclics']
             self.rmg.quantumMechanics.settings.maxRadicalNumber = form.cleaned_data['maxRadicalNumber']
         
+        # Solvation
+        solvent = form.cleaned_data['solvent'].encode()
+        if solvent != 'off':
+            self.rmg.solvent = solvent
+            
         # Additional Options
         self.rmg.units = 'si' 
         self.rmg.saveRestartPeriod = Quantity(form.cleaned_data['saveRestartPeriod'], form.cleaned_data['saveRestartPeriodUnits'].encode()) if form.cleaned_data['saveRestartPeriod'] else None
