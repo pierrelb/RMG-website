@@ -375,6 +375,7 @@ class PopulateReactions(models.Model):
 
 from rmgpy.measure.input import getTemperaturesForModel, getPressuresForModel
 from rmgpy.measure.main import MEASURE
+from rmgpy.qm.main import QMCalculator
 from rmgpy.solver.base import TerminationTime, TerminationConversion
 from rmgpy.solver.simple import SimpleReactor
 from rmgpy.species import Species        
@@ -428,7 +429,17 @@ class Input(models.Model):
     interpolation = models.CharField(max_length = 50, default = 'chebyshev', choices = interpolation_choices)
     temp_basis = models.PositiveIntegerField(blank = True, default = 6, null = True)
     p_basis = models.PositiveIntegerField(blank = True, default = 4, null = True)
-
+    
+    # QMTP
+    qm_software = (('off','off',),('gaussian','Gaussian (03 or 09)',),('mopac','MOPAC (2009 or 2012)',))
+    qmtp = models.CharField(max_length=50, default='off', choices=qm_software)
+    # Methods
+    qmmethods_choices = (('pm3','PM3',),('pm6','PM6',),('pm7','PM7',))
+    method = models.CharField(max_length=50, default='pm3', choices=qmmethods_choices)
+    # Species Constraints
+    onlyCyclics = models.BooleanField(default=True)
+    maxRadicalNumber = models.PositiveIntegerField(blank=True, default=0)
+    
     # Tolerance
     toleranceMoveToCore = models.FloatField(blank=True, null=True)
     toleranceKeepInEdge= models.FloatField(default = 0.0)
@@ -553,7 +564,14 @@ class Input(models.Model):
             initial['minimumNumberOfGrains'] = self.rmg.pressureDependence.grainCount
 
         else:
-            initial['pdep'] = 'off'    
+            initial['pdep'] = 'off'  
+            
+        if self.rmg.quantumMechanics:
+            initial['method'] = self.rmg.quantumMechanics.settings.method
+            initial['maxRadicalNumber'] = self.rmg.quantumMechanics.settings.maxRadicalNumber
+            initial['onlyCyclics'] = self.rmg.quantumMechanics.settings.onlyCyclics
+        else:
+            initial['qmtp'] = 'off'  
             
         # Additional Options
         if self.rmg.saveRestartPeriod:
@@ -652,6 +670,15 @@ class Input(models.Model):
         
             # Process interpolation model
             self.rmg.pressureDependence.model = interpolation
+        
+        # QMTP
+        qmtp = form.cleaned_data['qmtp'].encode()
+        if qmtp != 'off':
+            self.rmg.quantumMechanics = QMCalculator()
+            self.rmg.quantumMechanics.settings.software = qmtp
+            self.rmg.quantumMechanics.settings.method = form.cleaned_data['method']
+            self.rmg.quantumMechanics.settings.onlyCyclics = form.cleaned_data['onlyCyclics']
+            self.rmg.quantumMechanics.settings.maxRadicalNumber = form.cleaned_data['maxRadicalNumber']
         
         # Additional Options
         self.rmg.units = 'si' 

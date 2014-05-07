@@ -371,10 +371,22 @@ This is translated into an adjacency list using the <a href="http://cactus.nci.n
                 </li></ol>
 
                 </li></ul>
+                
+   <ol>
+           <li value="6"><h3>Quantum mechanics for thermodynamics: {{ form.qmtp }}</h3>
+               <P>
+               If you would like to use automated quantum chemical calculations to determine thermodynamic properties, fill out the options below.
+               <P>
+   
+               <table>
+                   <tr><th colspan="2">Method: {{form.method}}</th></tr>
+                   <tr><th colspan="2">Only Cyclic Species: {{form.onlyCyclics}}</th></tr>
+                   <tr><th>Maximum Radical Number:</th><td> {{form.maxRadicalNumber}}</td></tr>
+               </table>
+   
+       </ol>
 
-
-            <P><br>
-            <ol><li value="6"><h3>Tolerances</h3>
+            <ol><li value="7"><h3>Tolerances</h3>
                     <P>Indicate your allowed flux tolerance for moving a reaction to the core or keeping
                         the reaction on the edge.  In the advanced options, you can set additional tolerances for the solver, and 
                         for the edge reactions (the possible reactions generated from the species in the core).
@@ -396,7 +408,7 @@ This is translated into an adjacency list using the <a href="http://cactus.nci.n
             <P><br>
 
             <ol>
-        <li value="7"><h3>Additional Options</h3>
+        <li value="8"><h3>Additional Options</h3>
         	Restart files can be generated automatically during the progress of a RMG-Py job in order to pick up a job in the middle
         	of a run rather than starting completely from scratch if there is a failure or memory issue.          	
         	The save restart period may be optionally left empty if no restart files are desired.  

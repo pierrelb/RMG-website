@@ -97,6 +97,7 @@ class InputForm(forms.ModelForm):
             'temp_high': forms.TextInput(attrs={'size':'5'}),
             'temp_interp': forms.TextInput(attrs={'size':'2'}),
             'temp_basis': forms.TextInput(attrs={'size':'2'}),
+            'maxRadicalNumber': forms.TextInput(attrs={'size':'1'}),
             'toleranceMoveToCore': forms.TextInput(attrs={'size':'3'}),
             'toleranceKeepInEdge': forms.TextInput(attrs={'size':'3'}),
             'toleranceInterruptSimulation': forms.TextInput(attrs={'size':'3'}),
