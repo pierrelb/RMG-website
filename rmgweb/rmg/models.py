@@ -378,6 +378,7 @@ from rmgpy.measure.main import MEASURE
 from rmgpy.qm.main import QMCalculator
 from rmgpy.solver.base import TerminationTime, TerminationConversion
 from rmgpy.solver.simple import SimpleReactor
+from rmgpy.solver.liquid import LiquidReactor
 from rmgpy.species import Species        
 from rmgpy.molecule import Molecule
 from rmgpy.rmg.model import CoreEdgeReactionModel    
@@ -387,6 +388,7 @@ import quantities
 temp_units = (('K','K',),('C','C',))
 p_units = (('bar','bar',),('torr','torr',),('atm','atm',))
 t_units = (('ms','ms',),('s','s',),('hr','hr',))
+conc_units = (('mol/cm^3','mol/cm^3',),('mol/dm^3','mol/dm^3',),('mol/m^3','mol/m^3',))
 
 
 class Input(models.Model):
@@ -535,25 +537,44 @@ class Input(models.Model):
             for item, edge in self.rmg.reactionLibraries:
                 initial_reaction_libraries.append({'reactionlib': item, 'seedmech': False, 'edge': edge})
         
-        # Reactor systems
-        initial_reactor_systems = []
-        for system in self.rmg.reactionSystems:
-            temperature = system.T.getValue()
-            temperature_units = system.T.units
-            pressure = system.P.getValue()
-            pressure_units = system.P.units
-            initialMoleFractions = system.initialMoleFractions
-            for item in system.termination:
-                if isinstance(item, TerminationTime):
-                    terminationtime = item.time.getValue()
-                    time_units = item.time.units
-                else:
-                    species = item.species.label
-                    conversion = item.conversion
-            initial_reactor_systems.append({'temperature': temperature, 'temperature_units': temperature_units,
-                                            'pressure': pressure, 'pressure_units': pressure_units,
-                                            'terminationtime': terminationtime, 'time_units': time_units,
-                                            'species': species, 'conversion': conversion})       
+        # Solvation & Reactor systems
+        if self.rmg.solvent:
+            initial['solvent'] = self.rmg.solvent
+            initial_liquid_reactor_systems = []
+            for system in self.rmg.reactionSystems:
+                temperature = system.T.getValue()
+                temperature_units = system.T.units
+                initialConcentrations = system.initialConcentrations
+                for item in system.termination:
+                    if isinstance(item, TerminationTime):
+                        terminationtime = item.time.getValue()
+                        time_units = item.time.units
+                    else:
+                        species = item.species.label
+                        conversion = item.conversion
+                initial_reactor_systems.append({'temperature': temperature, 'temperature_units': temperature_units,
+                                                'terminationtime': terminationtime, 'time_units': time_units,
+                                                'species': species, 'conversion': conversion}) 
+        else:
+            initial['solvent'] = 'off'
+            initial_reactor_systems = []
+            for system in self.rmg.reactionSystems:
+                temperature = system.T.getValue()
+                temperature_units = system.T.units
+                pressure = system.P.getValue()
+                pressure_units = system.P.units
+                initialMoleFractions = system.initialMoleFractions
+                for item in system.termination:
+                    if isinstance(item, TerminationTime):
+                        terminationtime = item.time.getValue()
+                        time_units = item.time.units
+                    else:
+                        species = item.species.label
+                        conversion = item.conversion
+                initial_reactor_systems.append({'temperature': temperature, 'temperature_units': temperature_units,
+                                                'pressure': pressure, 'pressure_units': pressure_units,
+                                                'terminationtime': terminationtime, 'time_units': time_units,
+                                                'species': species, 'conversion': conversion})       
         
         # Species
         initial_species = []
@@ -563,8 +584,10 @@ class Input(models.Model):
             inert = False if item.reactive else True
             spec, isNew = self.rmg.reactionModel.makeNewSpecies(item.molecule[0], label = item.label, reactive = item.reactive)
             molefrac = initialMoleFractions[spec]
+            conc = concentrations[spec]
             initial_species.append({'name': name, 'adjlist': adjlist, 
-                                    'inert': inert, 'molefrac': molefrac})
+                                    'inert': inert, 'molefrac': molefrac,
+                                    'conc': conc})
             
         # Tolerances
         initial = {}
@@ -603,12 +626,6 @@ class Input(models.Model):
             initial['onlyCyclics'] = self.rmg.quantumMechanics.settings.onlyCyclics
         else:
             initial['qmtp'] = 'off'  
-            
-        # Solvation
-        if self.rmg.solvent:
-            initial['solvent'] = self.rmg.solvent
-        else:
-            initial['solvent'] = 'off'
         
         # Additional Options
         if self.rmg.saveRestartPeriod:
@@ -650,29 +667,51 @@ class Input(models.Model):
         self.rmg.kineticsFamilies = ['!Intra_Disproportionation']        
         self.rmg.kineticsEstimator = 'rate rules'
         
-        # Species
+        # Solvation & Species
         self.rmg.initialSpecies = []
         speciesDict = {}
-        initialMoleFractions = {}
+        solvent = form.cleaned_data['solvent'].encode()
         self.rmg.reactionModel = CoreEdgeReactionModel()
-        for item in posted.reactor_species.all():
-            structure = Molecule().fromAdjacencyList(item.adjlist.encode())
-            spec, isNew = self.rmg.reactionModel.makeNewSpecies(structure, label = item.name.encode(), reactive = False if item.inert else True)
-            self.rmg.initialSpecies.append(spec)
-            speciesDict[item.name.encode()] = spec
-            initialMoleFractions[spec] = item.molefrac
-            
+        if solvent != 'off':
+            initialConcentrations = {}
+            for item in posted.reactor_species.all():
+                structure = Molecule().fromAdjacencyList(item.adjlist.encode())
+                spec, isNew = self.rmg.reactionModel.makeNewSpecies(structure, label = item.name.encode(), reactive = False if item.inert else True)
+                self.rmg.initialSpecies.append(spec)
+                speciesDict[item.name.encode()] = spec
+                initialConcentrations[spec] = Quantity(item.conc, item.concentration_units.encode())
+        else:
+            initialMoleFractions = {}
+            for item in posted.reactor_species.all():
+                structure = Molecule().fromAdjacencyList(item.adjlist.encode())
+                spec, isNew = self.rmg.reactionModel.makeNewSpecies(structure, label = item.name.encode(), reactive = False if item.inert else True)
+                self.rmg.initialSpecies.append(spec)
+                speciesDict[item.name.encode()] = spec
+                initialMoleFractions[spec] = item.molefrac
+        
         # Reactor systems
-        self.rmg.reactionSystems = []
-        for item in posted.reactor_systems.all():
-            T = Quantity(item.temperature, item.temperature_units.encode())
-            P = Quantity(item.pressure, item.pressure_units.encode())            
-            termination = []
-            if item.conversion:
-                termination.append(TerminationConversion(speciesDict[item.species.encode()], item.conversion))
-            termination.append(TerminationTime(Quantity(item.terminationtime, item.time_units.encode())))
-            system = SimpleReactor(T, P, initialMoleFractions, termination)
-            self.rmg.reactionSystems.append(system)
+        if solvent != 'off':
+            self.rmg.solvent = solvent
+            self.rmg.reactionSystems = []
+            for item in posted.liquid_reactor_systems.all():
+                T = Quantity(item.temperature, item.temperature_units.encode())
+                termination = []
+                if item.conversion:
+                    termination.append(TerminationConversion(speciesDict[item.species.encode()], item.conversion))
+                termination.append(TerminationTime(Quantity(item.terminationtime, item.time_units.encode())))
+                system = LiquidReactor(T, initialConcentrations, termination)
+                self.rmg.reactionSystems.append(system)
+        else:
+            self.rmg.reactionSystems = []
+            for item in posted.reactor_systems.all():
+                T = Quantity(item.temperature, item.temperature_units.encode())
+                P = Quantity(item.pressure, item.pressure_units.encode())            
+                termination = []
+                if item.conversion:
+                    termination.append(TerminationConversion(speciesDict[item.species.encode()], item.conversion))
+                termination.append(TerminationTime(Quantity(item.terminationtime, item.time_units.encode())))
+                system = SimpleReactor(T, P, initialMoleFractions, termination)
+                self.rmg.reactionSystems.append(system)
     
         # Simulator tolerances
         self.rmg.absoluteTolerance = form.cleaned_data['simulator_atol']
@@ -716,11 +755,6 @@ class Input(models.Model):
             self.rmg.quantumMechanics.settings.method = form.cleaned_data['method']
             self.rmg.quantumMechanics.settings.onlyCyclics = form.cleaned_data['onlyCyclics']
             self.rmg.quantumMechanics.settings.maxRadicalNumber = form.cleaned_data['maxRadicalNumber']
-        
-        # Solvation
-        solvent = form.cleaned_data['solvent'].encode()
-        if solvent != 'off':
-            self.rmg.solvent = solvent
             
         # Additional Options
         self.rmg.units = 'si' 
@@ -765,11 +799,12 @@ class ReactorSpecies(models.Model):
     name = models.CharField(max_length=200)
     identifier = models.CharField(max_length=200, blank = True)
     adjlist = models.TextField()
-    molefrac = models.FloatField()
+    molefrac = models.FloatField(null=True, blank=True)
+    conc = models.FloatField(null=True, blank=True)
+    concentration_units = models.CharField(max_length=50, default = 'mol/cm^3', choices=conc_units)
     inert = models.BooleanField()
     def __unicode__(self):
         return self.name
-
 
 ################################################################################
 # REACTOR MODEL
@@ -785,8 +820,24 @@ class Reactor(models.Model):
     # through the web form right now.
     # Termination Criteria
     # Must always specify a termination time, but need not always specify a conversion
-    terminationtime = models.FloatField()
+    terminationtime = models.FloatField(blank=True, null=True)
     time_units = models.CharField(max_length=50, choices=t_units, default = 's')
     species = models.CharField(max_length=50, blank=True, null=True)
     conversion = models.FloatField(blank=True, null=True)
-    
+
+################################################################################
+# LIQUID REACTOR MODEL
+################################################################################
+
+class LiqReactor(models.Model):
+    input = models.ForeignKey(Input, related_name='liquid_reactor_systems')
+    temperature = models.FloatField()
+    temperature_units = models.CharField(max_length=50, default = 'K', choices=temp_units)
+    # NOTE: Initial Concentrations cannot be set individually for each reactor system 
+    # through the web form right now.
+    # Termination Criteria
+    # Must always specify a termination time, but need not always specify a conversion
+    terminationtime = models.FloatField(blank=True, null=True)
+    time_units = models.CharField(max_length=50, choices=t_units, default = 's')
+    species = models.CharField(max_length=50, blank=True, null=True)
+    conversion = models.FloatField(blank=True, null=True)    

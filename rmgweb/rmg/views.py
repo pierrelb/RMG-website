@@ -222,6 +222,8 @@ def input(request):
                                                   BaseInlineFormSet, extra = 1, can_delete=True)
     ReactorFormset = inlineformset_factory(Input, Reactor, ReactorForm, 
                                            BaseInlineFormSet, extra = 1, can_delete=True)
+    LiqReactorFormset = inlineformset_factory(Input, LiqReactor, LiqReactorForm, 
+                                                 BaseInlineFormSet, extra = 1, can_delete=True)
 
     Input.objects.all().delete()
     input = Input()
@@ -233,6 +235,7 @@ def input(request):
     reactionlibformset = ReactionLibraryFormset(instance=input)
     reactorspecformset = ReactorSpeciesFormset(instance=input)
     reactorformset = ReactorFormset(instance=input)
+    liqreactorformset = LiqReactorFormset(instance=input)
     upload_error = ''
     input_error = ''    
     
@@ -257,10 +260,13 @@ def input(request):
                                                               extra=len(initial_species), can_delete=True)
                 ReactorFormset = inlineformset_factory(Input, Reactor, ReactorForm, BaseInlineFormSet, 
                                                        extra = len(initial_reactor_systems), can_delete=True)
+                LiqReactorFormset = inlineformset_factory(Input, LiqReactor, LiqReactorForm, BaseInlineFormSet,
+                                                             extra = 1, can_delete=True)
                 thermolibformset = ThermoLibraryFormset()
                 reactionlibformset = ReactionLibraryFormset()
                 reactorspecformset = ReactorSpeciesFormset()
                 reactorformset = ReactorFormset()
+                liqreactorformset = LiqReactorFormset()
                 
                 # Load the initial data into the forms
                 form = InputForm(initial = initial)
@@ -271,6 +277,8 @@ def input(request):
                 for subform, data in zip(reactorspecformset.forms, initial_species):
                     subform.initial = data
                 for subform, data in zip(reactorformset.forms, initial_reactor_systems):
+                    subform.initial = data
+                for subform, data in zip(liqreactorformset.forms, initial_reactor_systems):
                     subform.initial = data
                 
             else:
@@ -283,9 +291,11 @@ def input(request):
             reactionlibformset = ReactionLibraryFormset(request.POST, instance=input)
             reactorspecformset = ReactorSpeciesFormset(request.POST, instance=input)
             reactorformset = ReactorFormset(request.POST, instance=input)
-                
+            liqreactorformset = LiqReactorFormset(request.POST, instance=input)
+            
+            # Gas-phase Systems
             if (form.is_valid() and thermolibformset.is_valid() and reactionlibformset.is_valid()
-                and reactorspecformset.is_valid() and reactorformset.is_valid()):
+                and reactorspecformset.is_valid() and reactorformset.is_valid() and reactorformset.has_changed()):
                 form.save()
                 thermolibformset.save()
                 reactionlibformset.save()
@@ -296,14 +306,27 @@ def input(request):
                 path = 'media/rmg/tools/input/input.py'            
                 return render_to_response('inputResult.html', {'path': path})
             
+            # Liquid-phase System
+            elif (form.is_valid() and thermolibformset.is_valid() and reactionlibformset.is_valid()
+                and reactorspecformset.is_valid() and liqreactorformset.is_valid() and liqreactorformset.has_changed()):
+                form.save()
+                thermolibformset.save()
+                reactionlibformset.save()
+                reactorspecformset.save()
+                liqreactorformset.save()
+                posted = Input.objects.all()[0]
+                input.saveForm(posted, form)            
+                path = 'media/rmg/tools/input/input.py' 
+                return render_to_response('inputResult.html', {'path': path})
+            
             else:
                 # Will need more useful error messages later.
                 input_error = 'Your form was invalid.  Please edit the form and try again.'
        
     return render_to_response('input.html', {'uploadform': uploadform, 'form': form, 'thermolibformset':thermolibformset,
                                              'reactionlibformset':reactionlibformset, 'reactorspecformset':reactorspecformset,
-                                             'reactorformset':reactorformset, 'upload_error': upload_error, 
-                                             'input_error': input_error}, context_instance=RequestContext(request))
+                                             'reactorformset':reactorformset, 'liqreactorformset':liqreactorformset,
+                                             'upload_error': upload_error, 'input_error': input_error}, context_instance=RequestContext(request))
     
     
     

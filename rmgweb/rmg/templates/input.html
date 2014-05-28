@@ -92,6 +92,12 @@ $(document).ready(function() {
             prefix: 'reactor_systems'
         })
     })
+    
+    $(function() {
+        $('#liquid_reactor_systems tbody tr').formset({
+            prefix: 'liquid_reactor_systems'
+        })
+    })
 </script>
 
 
@@ -253,7 +259,7 @@ If you already have a saved input.py file that you would like to modify, you can
         "SeedMech" option to allow to the library to be added to the core.
         If you do not wish for these reactions to be automatically included in the core but do want to
         retain it in your mechanism, you may also select the "Edge" option.
-        <P>You can browse the available libraries here: <a href="{% url 'database.views.kinetics' section='libraries' %}" target="_blank">Kineticss Libraries</a>
+        <P>You can browse the available libraries here: <a href="{% url 'database.views.kinetics' section='libraries' %}" target="_blank">Kinetics Libraries</a>
         <P>
         <table id="reaction_libraries">
                         <thead><tr><th scope="col">Library</th>
@@ -273,6 +279,9 @@ If you already have a saved input.py file that you would like to modify, you can
                     {{ reactionlibformset.management_form }}
         </tbody></table>
 
+    <li><h3>Liquid phase solvation corrections: {{ form.solvent }}</h3>
+        <P>
+        To be used if you would like to use solvation thermodynamic corrections.   
 
     <li><h3>Reactor Species</h3>
         Use this form to add a species to the RMG job from its adjacency list.  The "name" field will be used throughout your mechanism to identify this species.
@@ -292,6 +301,7 @@ If you already have a saved input.py file that you would like to modify, you can
                 <br><b>Adjacency List:</b>
                 <br>{{ form.adjlist }}
                 <br><b>Mole Fraction:</b> {{form.molefrac}}
+                <br><b>Concentration:</b> {{form.conc}} {{form.concentration_units}}
                 <br><b>Inert Species:</b> {{ form.inert }}
             </td><br>
         </tr>
@@ -331,7 +341,34 @@ If you already have a saved input.py file that you would like to modify, you can
         </table>
         </ol>
 
+    <li><h3>Liquid Reactor Systems</h3>
+         <p>Enter individual reactor system settings for which the RMG model will be valid.
+         You may add multiple reactor systems for which the overall mechanism will be valid.
+         <P>You must provide a maximum reaction time for the job.
+         A species conversion requirement is optional- be sure to use the 
+         same species name as provided previously.  The RMG job will stop as soon as
+         one of the termination criteria is fulfilled.
      
+         <ol start="1">
+     
+         <table id="liquid_reactor_systems" border="1" cellpadding ="3" cellspacing ="30" rules="rows">
+             <tbody>{% for form in liqreactorformset.forms %}
+     
+             <tr id="{{ form.prefix }}-row"><td><li> {% for fld in form.hidden_fields %}{{ fld }}{% endfor %}
+                                                      {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
+                            
+                 <b>Temperature:</b> {{ form.temperature }} {{ form.temperature_units }}    
+                 <br><b>Termination Criteria:</b>
+                 <blockquote>
+                         <b>End Time:</b> {{ form.terminationtime }} {{ form.time_units }}
+                         <br><b>Species:</b> {{ form.species }} <b>Conversion:</b> {{ form.conversion }}
+                 </blockquote>
+                 </td></tr>
+         {% endfor %}
+         {{ liqreactorformset.management_form }}
+         </tbody>
+         </table>
+         </ol> 
    
     <li><h3>Pressure Dependence: {{ form.pdep }}</h3>
         <P>
@@ -373,11 +410,7 @@ If you already have a saved input.py file that you would like to modify, you can
             <tr><th colspan="2">Method: {{form.method}}</th></tr>
             <tr><th colspan="2">Only Cyclic Species: {{form.onlyCyclics}}</th></tr>
             <tr><th>Maximum Radical Number:</th><td> {{form.maxRadicalNumber}}</td></tr>
-        </table>
-       
-    <li><h3>Liquid phase solvation corrections: {{ form.solvent }}</h3>
-        <P>
-        To be used if you would like to use solvation thermodynamic corrections.       
+        </table>    
 
     <li><h3>Tolerances</h3>
         <P>

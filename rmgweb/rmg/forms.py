@@ -107,7 +107,6 @@ class InputForm(forms.ModelForm):
             'saveRestartPeriod':forms.TextInput(attrs={'size':5}),
         }  
 
-
 class ThermoLibraryForm(forms.ModelForm):
     class Meta:
         model = ThermoLibrary
@@ -124,8 +123,19 @@ class ReactorSpeciesForm(forms.ModelForm):
         'identifier': forms.TextInput(attrs={'onchange':'resolve(this.id);','class':'identifier', 'style':'width:100%;'}),
         'adjlist':forms.Textarea(attrs={'cols': 50, 'rows': 10 }),
         'molefrac': forms.TextInput(attrs={'size':'5'}),
+        'conc': forms.TextInput(attrs={'size':'5'}),
         }
-
+    
+    def clean(self):
+        cleaned_data = super(ReactorSpeciesForm, self).clean()
+        molefrac = cleaned_data.get('molefrac')
+        conc = cleaned_data.get('conc')
+        
+        if (conc and molefrac) or (not conc and not molefrac):
+            raise forms.ValidationError('Fill in either mole fraction (gas phase) OR concentration (liquid phase)')
+        
+        return cleaned_data
+        
     def clean_adjlist(self):
         """
         Custom validation for the adjlist field to ensure that a valid adjacency
@@ -151,7 +161,39 @@ class ReactorForm(forms.ModelForm):
             'terminationtime': forms.TextInput(attrs={'size':'5'}),
             'conversion': forms.TextInput(attrs={'size':'5'}),
         }
+    
+    def clean(self):
+        cleaned_data = super(ReactorForm, self).clean()
+        temperature = cleaned_data.get('temperature')
+        pressure = cleaned_data.get('pressure')
+        terminationtime = cleaned_data.get('terminationtime')
+        conversion = cleaned_data.get('conversion')
         
+        if not (temperature and pressure and terminationtime) and not (temperature and pressure and conversion):
+            raise forms.ValidationError('You need to specify a temperature and pressure, as well as an end time and/or species conversion.')
+        
+        return cleaned_data
+        
+class LiqReactorForm(forms.ModelForm):
+    class Meta:
+        model = LiqReactor
+        widgets ={
+            'temperature': forms.TextInput(attrs={'size':'5'}),
+            'terminationtime': forms.TextInput(attrs={'size':'5'}),
+            'conversion': forms.TextInput(attrs={'size':'5'}),
+        }
+    
+    def clean(self):
+        cleaned_data = super(LiqReactorForm, self).clean()
+        temperature = cleaned_data.get('temperature')
+        terminationtime = cleaned_data.get('terminationtime')
+        conversion = cleaned_data.get('conversion')
+        
+        if not (temperature and terminationtime) and not (temperature and conversion):
+            raise forms.ValidationError('You need to specify a temperature and pressure, as well as an end time and/or species conversion.')
+        
+        return cleaned_data
+                        
 class NASAForm(forms.Form):
     """
     Form for entering a CHEMKIN format NASA polynomial
