@@ -276,10 +276,12 @@ def input(request):
                     subform.initial = data
                 for subform, data in zip(reactorspecformset.forms, initial_species):
                     subform.initial = data
-                for subform, data in zip(reactorformset.forms, initial_reactor_systems):
-                    subform.initial = data
-                for subform, data in zip(liqreactorformset.forms, initial_reactor_systems):
-                    subform.initial = data
+                if initial['solvent'] == 'off':
+                    for subform, data in zip(reactorformset.forms, initial_reactor_systems):
+                        subform.initial = data
+                else:
+                    for subform, data in zip(liqreactorformset.forms, initial_reactor_systems):
+                        subform.initial = data
                 
             else:
                 upload_error = 'Your input file was invalid.  Please try again.'

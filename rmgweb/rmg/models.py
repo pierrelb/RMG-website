@@ -520,7 +520,7 @@ class Input(models.Model):
     def loadForm(self, path):
         """
         Load input.py file onto form initial data.
-        """        
+        """  
         readInputFile(path, self.rmg)
         
         # Databases
@@ -538,43 +538,67 @@ class Input(models.Model):
                 initial_reaction_libraries.append({'reactionlib': item, 'seedmech': False, 'edge': edge})
         
         # Solvation & Reactor systems
+        initial_reactor_systems = []
         if self.rmg.solvent:
-            initial['solvent'] = self.rmg.solvent
+            initial = {'solvent': self.rmg.solvent}
             initial_liquid_reactor_systems = []
             for system in self.rmg.reactionSystems:
                 temperature = system.T.getValue()
                 temperature_units = system.T.units
                 initialConcentrations = system.initialConcentrations
+                termination = []
                 for item in system.termination:
                     if isinstance(item, TerminationTime):
                         terminationtime = item.time.getValue()
                         time_units = item.time.units
+                        termination.append('time')
                     else:
                         species = item.species.label
                         conversion = item.conversion
-                initial_reactor_systems.append({'temperature': temperature, 'temperature_units': temperature_units,
-                                                'terminationtime': terminationtime, 'time_units': time_units,
-                                                'species': species, 'conversion': conversion}) 
+                        termination.append('conversion')
+                if ('time' and 'conversion') in termination:
+                    initial_reactor_systems.append({'temperature': temperature, 'temperature_units': temperature_units,
+                                                    'terminationtime': terminationtime, 'time_units': time_units,
+                                                    'species': species, 'conversion': conversion})
+                elif 'time' in termination:
+                    initial_reactor_systems.append({'temperature': temperature, 'temperature_units': temperature_units,
+                                                    'terminationtime': terminationtime, 'time_units': time_units})
+                elif 'conversion' in termination:
+                    initial_reactor_systems.append({'temperature': temperature, 'temperature_units': temperature_units,
+                                                    'species': species, 'conversion': conversion})
         else:
-            initial['solvent'] = 'off'
-            initial_reactor_systems = []
+            initial = {'solvent': 'off'}
             for system in self.rmg.reactionSystems:
                 temperature = system.T.getValue()
                 temperature_units = system.T.units
                 pressure = system.P.getValue()
                 pressure_units = system.P.units
                 initialMoleFractions = system.initialMoleFractions
+                termination = []
                 for item in system.termination:
                     if isinstance(item, TerminationTime):
                         terminationtime = item.time.getValue()
                         time_units = item.time.units
+                        termination.append('time')
                     else:
                         species = item.species.label
                         conversion = item.conversion
-                initial_reactor_systems.append({'temperature': temperature, 'temperature_units': temperature_units,
-                                                'pressure': pressure, 'pressure_units': pressure_units,
-                                                'terminationtime': terminationtime, 'time_units': time_units,
-                                                'species': species, 'conversion': conversion})       
+                        termination.append('conversion')
+                if ('time' and 'conversion') in termination:
+                    initial_reactor_systems.append({'temperature': temperature, 'temperature_units': temperature_units,
+                                                    'pressure': pressure, 'pressure_units': pressure_units,
+                                                    'terminationtime': terminationtime, 'time_units': time_units,
+                                                    'species': species, 'conversion': conversion})
+                elif 'time' in termination:
+                    initial_reactor_systems.append({'temperature': temperature, 'temperature_units': temperature_units,
+                                                    'pressure': pressure, 'pressure_units': pressure_units,
+                                                    'terminationtime': terminationtime, 'time_units': time_units})
+                elif 'conversion' in termination:
+                    initial_reactor_systems.append({'temperature': temperature, 'temperature_units': temperature_units,
+                                                    'pressure': pressure, 'pressure_units': pressure_units,
+                                                    'species': species, 'conversion': conversion})
+
+                           
         
         # Species
         initial_species = []
@@ -583,14 +607,17 @@ class Input(models.Model):
             adjlist = item.molecule[0].toAdjacencyList()
             inert = False if item.reactive else True
             spec, isNew = self.rmg.reactionModel.makeNewSpecies(item.molecule[0], label = item.label, reactive = item.reactive)
-            molefrac = initialMoleFractions[spec]
-            conc = concentrations[spec]
+            if self.rmg.solvent:
+                conc = initialConcentrations[spec]
+                molefrac = None
+            else:
+                molefrac = initialMoleFractions[spec]
+                conc = None
             initial_species.append({'name': name, 'adjlist': adjlist, 
                                     'inert': inert, 'molefrac': molefrac,
                                     'conc': conc})
             
         # Tolerances
-        initial = {}
         initial['simulator_atol'] = self.rmg.absoluteTolerance 
         initial['simulator_rtol'] = self.rmg.relativeTolerance 
         initial['toleranceKeepInEdge'] = self.rmg.fluxToleranceKeepInEdge 
@@ -801,7 +828,7 @@ class ReactorSpecies(models.Model):
     adjlist = models.TextField()
     molefrac = models.FloatField(null=True, blank=True)
     conc = models.FloatField(null=True, blank=True)
-    concentration_units = models.CharField(max_length=50, default = 'mol/cm^3', choices=conc_units)
+    concentration_units = models.CharField(max_length=50, default = 'mol/m^3', choices=conc_units)
     inert = models.BooleanField()
     def __unicode__(self):
         return self.name
