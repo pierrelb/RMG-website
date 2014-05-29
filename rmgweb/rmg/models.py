@@ -627,9 +627,9 @@ class Input(models.Model):
                 
         # Pressure Dependence
         if self.rmg.pressureDependence:
-            initial['interpolation'] = self.rmg.pressureDependence.model[0]
-            initial['temp_basis'] = self.rmg.pressureDependence.model[1]
-            initial['p_basis'] = self.rmg.pressureDependence.model[2]
+            initial['interpolation'] = self.rmg.pressureDependence.interpolationModel[0]
+            initial['temp_basis'] = self.rmg.pressureDependence.interpolationModel[1]
+            initial['p_basis'] = self.rmg.pressureDependence.interpolationModel[2]
             initial['temp_low'] = self.rmg.pressureDependence.Tmin.getValue()
             initial['temp_high'] = self.rmg.pressureDependence.Tmax.getValue()
             initial['temprange_units'] = self.rmg.pressureDependence.Tmax.units
@@ -637,11 +637,10 @@ class Input(models.Model):
             initial['p_low'] = self.rmg.pressureDependence.Pmin.getValue()
             initial['p_high'] = self.rmg.pressureDependence.Pmax.getValue()
             initial['prange_units'] = self.rmg.pressureDependence.Pmax.units
-            initial['p_interp'] = self.rmg.pressureDepence.Pcount
-            
-            initial['maximumGrainSize'] = self.rmg.pressureDependence.grainSize.getValue()
-            initial['grainsize_units'] = self.rmg.pressureDependence.grainSize.units
-            initial['minimumNumberOfGrains'] = self.rmg.pressureDependence.grainCount
+            initial['p_interp'] = self.rmg.pressureDependence.Pcount
+            initial['maximumGrainSize'] = self.rmg.pressureDependence.maximumGrainSize.getValue()
+            initial['grainsize_units'] = self.rmg.pressureDependence.maximumGrainSize.units
+            initial['minimumNumberOfGrains'] = self.rmg.pressureDependence.minimumGrainCount
 
         else:
             initial['pdep'] = 'off'  
