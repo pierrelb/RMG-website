@@ -48,6 +48,7 @@ from rmgpy.species import Species
 from rmgpy.reaction import Reaction
 from rmgpy.data.base import Entry
 from rmgpy.data.kinetics import TemplateReaction, DepositoryReaction
+from rmgpy.data.kinetics.transitionstates import TransitionStates
 from rmgweb.main.tools import *
 
 from rmgpy.data.thermo import ThermoDatabase
@@ -314,6 +315,15 @@ def getKineticsDatabase(section, subsection):
                 elif subsection[1] == 'rules':
                     db = family.rules
                 elif subsection[1] == 'TS_groups':
+                    family.transitionStates = TransitionStates()
+                    local_context = {}
+                    local_context['recipe'] = family.loadRecipe
+                    local_context['template'] = family.loadTemplate
+                    local_context['forbidden'] = family.loadForbidden
+                    local_context['True'] = True
+                    local_context['False'] = False
+                    global_context = {}
+                    family.transitionStates.load(os.path.join(rmgweb.settings.DATABASE_PATH, 'kinetics', 'families', family.label), local_context, global_context)
                     db = family.transitionStates.groups
                 else:
                     label = '{0}/{1}'.format(family.label, subsection[1])
