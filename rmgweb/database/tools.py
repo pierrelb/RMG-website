@@ -48,6 +48,7 @@ from rmgpy.species import Species
 from rmgpy.reaction import Reaction
 from rmgpy.data.base import Entry
 from rmgpy.data.kinetics import TemplateReaction, DepositoryReaction
+from rmgpy.data.kinetics import KineticsFamily
 from rmgpy.data.kinetics.transitionstates import TransitionStates
 from rmgweb.main.tools import *
 
@@ -323,6 +324,19 @@ def getKineticsDatabase(section, subsection):
                     local_context['True'] = True
                     local_context['False'] = False
                     global_context = {}
+                    family.transitionStates.family = KineticsFamily(entries=None,
+                                                                    top=None,
+                                                                    label=family.label,
+                                                                    name=family.name,
+                                                                    reverse='',
+                                                                    shortDesc='',
+                                                                    longDesc='',
+                                                                    forwardTemplate=family.forwardTemplate,
+                                                                    forwardRecipe=family.forwardRecipe,
+                                                                    reverseTemplate=family.reverseTemplate,
+                                                                    reverseRecipe=family.reverseRecipe,
+                                                                    forbidden=None
+                                                                    )
                     family.transitionStates.load(os.path.join(rmgweb.settings.DATABASE_PATH, 'kinetics', 'families', family.label), local_context, global_context)
                     db = family.transitionStates.groups
                 else:
